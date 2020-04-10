@@ -2,6 +2,7 @@ var tileSize;
 var map;
 var player;
 var enemies = [];
+var enemyImage;
 
 function setup() {
   createCanvas(1280,640);
@@ -24,6 +25,7 @@ function setup() {
   };
   player = {
     playerColor:'#FFFF00',
+    playerImage:loadImage('mario.png'),
     height:32,
     width:32,
     jumping:true,
@@ -43,9 +45,10 @@ function draw() {
   drawMap();
   drawEnemies();
   moveEnemies();
-  stroke(player.playerColor);
+  /*stroke(player.playerColor);
   fill(player.playerColor);
-  rect(player.x,player.y,player.width,player.height);
+  rect(player.x,player.y,player.width,player.height);*/
+  image(player.playerImage,player.x,player.y,player.width,player.height);
   playerMovement();
 }
 
@@ -110,6 +113,7 @@ function playerMovement(){
 }
   
 function initializeEnemies(){
+  enemyImage = loadImage('koopaTroopa.png');
   enemies = [
     e1={
       height:32,
@@ -121,7 +125,8 @@ function initializeEnemies(){
       lastx:34,
       lasty:240,
       lowerBound:192,
-      upperBound:416
+      upperBound:416,
+      view:48
     },
     e2={
       height:32,
@@ -133,27 +138,30 @@ function initializeEnemies(){
       lastx:460,
       lasty:240,
       lowerBound:450,
-      upperBound:576
+      upperBound:576,
+      viewLength:48
     }
   ];
 }
   
 function drawEnemies(){
-  stroke('#00FF00');
-  fill('#00FF00');
+  //stroke('#00FF00');
+  //fill('#00FF00');
   for(i=0;i<enemies.length;i++){
-    rect(enemies[i].x,enemies[i].y,enemies[i].width,enemies[i].height);
+    //rect(enemies[i].x,enemies[i].y,enemies[i].width,enemies[i].height);
+    image(enemyImage,enemies[i].x,enemies[i].y,enemies[i].width,enemies[i].height);
   }
 }
   
 function moveEnemies(){
   for(i=0;i<enemies.length;i++){
-      enemies[i].lastx = enemies[i].x;
-      enemies[i].lasty = enemies[i].y;
-      enemies[i].x += enemies[i].x_velocity;
-      enemies[i].y += enemies[i].y_velocity;
-      enemyCollisions(enemies[i]);
-      keepInPlace(enemies[i]);
+    enemies[i].lastx = enemies[i].x;
+    enemies[i].lasty = enemies[i].y;
+    enemies[i].x += enemies[i].x_velocity;
+    enemies[i].y += enemies[i].y_velocity;
+    enemyCollisions(enemies[i]);
+    keepInPlace(enemies[i]);
+    enemies[i].viewLength *= (enemies[i].x_velocity / abs(enemies[i].x_velocity));
   }
 }
   
@@ -165,6 +173,41 @@ function keepInPlace(enemy){
   else if(enemy.x > enemy.upperBound){
     enemy.x = enemy.upperBound;
     enemy.x_velocity *= -1;
+  }
+}
+
+function inViewOf(enemy){
+  if(enemy.viewLength / abs(enemy.viewLength) === 1){
+    if(player.x < enemy.x + 32 + enemy.viewLength && player.x >= enemy.x){
+      return true;
+    }
+  }
+  else if(player.x > enemy.x + enemy.viewLength && player.x <= enemy.x){
+    return true;
+  }
+  return false;
+}
+
+function behindEnemy(enemy){
+  print(player.x + ',' + player.y);
+  if((player.y >= enemy.y && player.y < enemy.y+32) || (player.y+32 >= enemy.y && player.y+32 < enemy.y+32)){
+    if(enemy.x_velocity > 0){
+      print('enemy moving forward');
+      print(enemy.x-64 + ',' + enemy.x);
+      if(player.x >= enemy.x - 64 && player.x < enemy.x){
+        print('behind');
+        return true;
+      }
+    }
+    else if(enemy.x_velocity < 0){
+      print('enemy moving backward');
+      if(player.x <= enemy.x + 32 + 64 && player.x > enemy.x){
+        return true;
+      }
+    }
+  }
+  else{
+    return false;
   }
 }
 
@@ -364,4 +407,18 @@ function topCollision(object,row){
     }
   }
   return false;
+}
+
+function keyPressed(){
+  switch(keyCode){
+    case 69:
+      for(i=0;i<enemies.length;i++){
+        if(!inViewOf(enemies[i]) && behindEnemy(enemies[i])){
+          enemies[i].x_velocity = 0;
+        }
+      }
+      break;
+    default:
+      break;
+  }
 }
